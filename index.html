@@ -35,6 +35,7 @@
     let mouseX
     let mouseY
 
+    const canvasDims = []
     let canvas
     let graphics
 
@@ -44,13 +45,12 @@
         if (this.length === 1) return this[0]
 
         let minElement = this[0]
-        let minValue = f(this[0])
+        let minValue = f(minElement)
 
         for (let i = 1; i < this.length; i++) {
-            const e = this[i]
-            const v = f(e)
+            const v = f(this[i])
             if (v < minValue) {
-                minElement = e
+                minElement = this[i]
                 minValue = v
             }
         }
@@ -79,10 +79,8 @@
     }
 
     function drawCursor() {
-        const x = mouseX * canvas.width
-        const y = mouseY * canvas.height
-        graphics.fillRect(x - CURSOR_SIZE      / 2, y - CURSOR_THICKNESS / 2, CURSOR_SIZE,      CURSOR_THICKNESS)
-        graphics.fillRect(x - CURSOR_THICKNESS / 2, y - CURSOR_SIZE      / 2, CURSOR_THICKNESS, CURSOR_SIZE     )
+        graphics.fillRect(mouseX - CURSOR_SIZE      / 2, mouseY - CURSOR_THICKNESS / 2, CURSOR_SIZE,      CURSOR_THICKNESS)
+        graphics.fillRect(mouseX - CURSOR_THICKNESS / 2, mouseY - CURSOR_SIZE      / 2, CURSOR_THICKNESS, CURSOR_SIZE     )
     }
 
     function draw() {
@@ -92,7 +90,7 @@
         // 2. draw flies
         graphics.fillStyle = FLY_COLOR
         graphics.globalAlpha = .5
-        for (const f of flies) drawFly(f[0] * canvas.width, f[1] * canvas.height)
+        for (const f of flies) drawFly(...f)
 
         // 3. draw cursor
         graphics.fillStyle = CURSOR_COLOR
@@ -109,7 +107,7 @@
 
     function dfoInit() {
         flies = Array(N).fill().map(_ =>
-            Array(D).fill().map(_ => Math.random())
+            [...Array(D).keys()].map(i => Math.random() * canvasDims[i])
         )
     }
 
@@ -129,10 +127,10 @@
             for (let d = 0; d < D; d++)
                 if (Math.random() < T)
                     // exploration
-                    fNew[d] = Math.random()
+                    fNew[d] = Math.random() * canvasDims[d]
                 else
                     // exploitation (with clamp instead of restart if out of bounds!)
-                    fNew[d] = clamp(bestNeighbor[d] + Math.random() * (bestGlobal[d] - f[d]))
+                    fNew[d] = clamp(bestNeighbor[d] + Math.random() * (bestGlobal[d] - f[d]), 0, canvasDims[d])
         }
 
         flies = fliesNew
@@ -141,8 +139,8 @@
 
 
     function setDimensions() {
-        canvas.width = window.innerWidth
-        canvas.height = window.innerHeight
+        canvasDims[0] = canvas.width = window.innerWidth
+        canvasDims[1] = canvas.height = window.innerHeight
     }
 
     function main() {
@@ -152,10 +150,11 @@
         setDimensions()
         window.addEventListener('resize', setDimensions)
 
-        mouseX = mouseY = .5  // center
+        mouseX = canvas.width / 2
+        mouseY = canvas.height / 2
         canvas.addEventListener('mousemove', e => {
-            mouseX = e.clientX / window.innerWidth
-            mouseY = e.clientY / window.innerHeight
+            mouseX = e.clientX
+            mouseY = e.clientY
         })
 
         dfoInit()
