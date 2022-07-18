@@ -21,17 +21,21 @@
 
 <script>
     const FLY_COLOR         = '#212529'
-    const FLY_RADIUS        = 5
+    const FLY_RADIUS        =   5
 
     const CURSOR_COLOR      = '#dc3545'
-    const CURSOR_THICKNESS  = 4
-    const CURSOR_SIZE       = 20
+    const CURSOR_THICKNESS  =   4
+    const CURSOR_SIZE       =  20
 
-    const N = 20            // no. flies
-    const D = 2             // no. dimensions (grid!)
-    const T = 1 / (N*D)     // disturbance threshold
+    const DFO_DELAY         = 250  // ms
 
-    let flies               // [index][dimension]
+    const N = 40                   // no. flies
+    const D = 2                    // no. dimensions (grid!)
+    const T = 1 / (N*D)            // disturbance threshold
+
+    let timeLastIter               // unix time (ms)
+    let flies                      // [index][dimension]
+    let fliesNext
     let mouseX
     let mouseY
 
@@ -72,9 +76,16 @@
     }
 
 
-    function drawFly(x, y) {
+    function interpolateFly(f1, f2, t) {
+        return [
+            f1[0] + t * (f2[0] - f1[0]),
+            f1[1] + t * (f2[1] - f1[1]),
+        ]
+    }
+
+    function drawFly(f) {
         graphics.beginPath()
-        graphics.arc(x, y, FLY_RADIUS, 0, 2 * Math.PI)
+        graphics.arc(f[0], f[1], FLY_RADIUS, 0, 2 * Math.PI)
         graphics.fill()
     }
 
@@ -90,12 +101,16 @@
         // 2. draw flies
         graphics.fillStyle = FLY_COLOR
         graphics.globalAlpha = .5
-        for (const f of flies) drawFly(...f)
+        const t = clamp((Date.now() - timeLastIter) / DFO_DELAY)
+        for (let i = 0; i < N; i++) drawFly(interpolateFly(flies[i], fliesNext[i], t))
 
         // 3. draw cursor
         graphics.fillStyle = CURSOR_COLOR
         graphics.globalAlpha = 1
         drawCursor()
+
+        // 4. schedule next redraw
+        window.requestAnimationFrame(draw)
     }
 
 
@@ -106,20 +121,24 @@
     }
 
     function dfoInit() {
-        flies = Array(N).fill().map(_ =>
-            [...Array(D).keys()].map(i => Math.random() * canvasDims[i])
+        fliesNext = Array(N).fill().map(_ =>
+            [...Array(D).keys()].map(d => Math.random() * canvasDims[d])
         )
+        dfoIter()
     }
 
     // note that best fly is not changed
     function dfoIter() {
+        timeLastIter = Date.now()
+        flies = fliesNext
+        fliesNext = Array(N)
+
         const costs = flies.map(computeCost)
         const bestGlobal = flies[argmin(costs)]
 
-        const fliesNew = Array(N)
         for (let i = 0; i < N; i++) {
             const f = flies[i]
-            const fNew = fliesNew[i] = Array(D)
+            const fNew = fliesNext[i] = Array(D)
 
             const neighborIndices = [(i-1 + N) % N, i, (i+1) % N]  // also includes current fly!
             const bestNeighbor = flies[neighborIndices.minBy(k => costs[k])]
@@ -132,9 +151,6 @@
                     // exploitation (with clamp instead of restart if out of bounds!)
                     fNew[d] = clamp(bestNeighbor[d] + Math.random() * (bestGlobal[d] - f[d]), 0, canvasDims[d])
         }
-
-        flies = fliesNew
-        draw()
     }
 
 
@@ -158,6 +174,8 @@
         })
 
         dfoInit()
-        setInterval(dfoIter, 100)
+        setInterval(dfoIter, DFO_DELAY)
+
+        draw()  // initial call
     }
 </script>
