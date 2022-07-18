@@ -1,0 +1,164 @@
+<!doctype html>
+
+<meta charset="utf-8">
+<meta name="viewport" content="initial-scale=1, width=device-width">
+<style>
+    html, body {
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+    }
+    canvas {
+        display: block;
+        cursor: none;
+    }
+</style>
+<title>Dispersive Flies</title>
+
+<body onload="main()">
+    <canvas></canvas>
+</body>
+
+<script>
+    const FLY_COLOR         = '#212529'
+    const FLY_RADIUS        = 5
+
+    const CURSOR_COLOR      = '#dc3545'
+    const CURSOR_THICKNESS  = 4
+    const CURSOR_SIZE       = 20
+
+    const N = 20            // no. flies
+    const D = 2             // no. dimensions (grid!)
+    const T = 1 / (N*D)     // disturbance threshold
+
+    let flies               // [index][dimension]
+    let mouseX
+    let mouseY
+
+    let canvas
+    let graphics
+
+
+    Array.prototype.minBy = function(f) {
+        if (this.length === 0) return undefined
+        if (this.length === 1) return this[0]
+
+        let minElement = this[0]
+        let minValue = f(this[0])
+
+        for (let i = 1; i < this.length; i++) {
+            const e = this[i]
+            const v = f(e)
+            if (v < minValue) {
+                minElement = e
+                minValue = v
+            }
+        }
+
+        return minElement
+    }
+
+    function argmin(a) {
+        if (a.length === 0) return undefined
+        let minIndex = 0
+        for (let i = 1; i < a.length; i++)
+            if (a[i] < a[minIndex])
+                minIndex = i
+        return minIndex
+    }
+
+    function clamp(x, min=0, max=1) {
+        return Math.max(min, Math.min(x, max))
+    }
+
+
+    function drawFly(x, y) {
+        graphics.beginPath()
+        graphics.arc(x, y, FLY_RADIUS, 0, 2 * Math.PI)
+        graphics.fill()
+    }
+
+    function drawCursor() {
+        const x = mouseX * canvas.width
+        const y = mouseY * canvas.height
+        graphics.fillRect(x - CURSOR_SIZE      / 2, y - CURSOR_THICKNESS / 2, CURSOR_SIZE,      CURSOR_THICKNESS)
+        graphics.fillRect(x - CURSOR_THICKNESS / 2, y - CURSOR_SIZE      / 2, CURSOR_THICKNESS, CURSOR_SIZE     )
+    }
+
+    function draw() {
+        // 1. clear
+        graphics.clearRect(0, 0, canvas.width, canvas.height)
+
+        // 2. draw flies
+        graphics.fillStyle = FLY_COLOR
+        graphics.globalAlpha = .5
+        for (const f of flies) drawFly(f[0] * canvas.width, f[1] * canvas.height)
+
+        // 3. draw cursor
+        graphics.fillStyle = CURSOR_COLOR
+        graphics.globalAlpha = 1
+        drawCursor()
+    }
+
+
+    function computeCost(f) {
+        const dx = f[0] - mouseX
+        const dy = f[1] - mouseY
+        return dx*dx + dy*dy
+    }
+
+    function dfoInit() {
+        flies = Array(N).fill().map(_ =>
+            Array(D).fill().map(_ => Math.random())
+        )
+    }
+
+    // note that best fly is not changed
+    function dfoIter() {
+        const costs = flies.map(computeCost)
+        const bestGlobal = flies[argmin(costs)]
+
+        const fliesNew = Array(N)
+        for (let i = 0; i < N; i++) {
+            const f = flies[i]
+            const fNew = fliesNew[i] = Array(D)
+
+            const neighborIndices = [(i-1 + N) % N, i, (i+1) % N]  // also includes current fly!
+            const bestNeighbor = flies[neighborIndices.minBy(k => costs[k])]
+
+            for (let d = 0; d < D; d++)
+                if (Math.random() < T)
+                    // exploration
+                    fNew[d] = Math.random()
+                else
+                    // exploitation (with clamp instead of restart if out of bounds!)
+                    fNew[d] = clamp(bestNeighbor[d] + Math.random() * (bestGlobal[d] - f[d]))
+        }
+
+        flies = fliesNew
+        draw()
+    }
+
+
+    function setDimensions() {
+        canvas.width = window.innerWidth
+        canvas.height = window.innerHeight
+    }
+
+    function main() {
+        canvas = document.querySelector('canvas')
+        graphics = canvas.getContext('2d')
+
+        setDimensions()
+        window.addEventListener('resize', setDimensions)
+
+        mouseX = mouseY = .5  // center
+        canvas.addEventListener('mousemove', e => {
+            mouseX = e.clientX / window.innerWidth
+            mouseY = e.clientY / window.innerHeight
+        })
+
+        dfoInit()
+        setInterval(dfoIter, 100)
+    }
+</script>
