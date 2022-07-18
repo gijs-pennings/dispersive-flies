@@ -27,11 +27,11 @@
     const CURSOR_THICKNESS  =   4
     const CURSOR_SIZE       =  20
 
-    const DFO_DELAY         = 250  // ms
+    const DFO_DELAY         = 200  // ms
 
     const N = 40                   // no. flies
     const D = 2                    // no. dimensions (grid!)
-    const T = 1 / (N*D)            // disturbance threshold
+    const T = 1 / N                // disturbance threshold
 
     let timeLastIter               // unix time (ms)
     let flies                      // [index][dimension]
@@ -76,6 +76,7 @@
     }
 
 
+    // simple linear interpolation (ease-in-out makes the animation choppy)
     function interpolateFly(f1, f2, t) {
         return [
             f1[0] + t * (f2[0] - f1[0]),
@@ -127,18 +128,21 @@
         dfoIter()
     }
 
-    // note that best fly is not changed
     function dfoIter() {
         timeLastIter = Date.now()
         flies = fliesNext
         fliesNext = Array(N)
 
         const costs = flies.map(computeCost)
-        const bestGlobal = flies[argmin(costs)]
+        const bestIndex = argmin(costs)
+        const best = flies[bestIndex]
 
         for (let i = 0; i < N; i++) {
+            // do not change best
+            if (i === bestIndex) { fliesNext[i] = flies[i]; continue }
+
             const f = flies[i]
-            const fNew = fliesNext[i] = Array(D)
+            const fNext = fliesNext[i] = Array(D)
 
             const neighborIndices = [(i-1 + N) % N, i, (i+1) % N]  // also includes current fly!
             const bestNeighbor = flies[neighborIndices.minBy(k => costs[k])]
@@ -146,10 +150,10 @@
             for (let d = 0; d < D; d++)
                 if (Math.random() < T)
                     // exploration
-                    fNew[d] = Math.random() * canvasDims[d]
+                    fNext[d] = Math.random() * canvasDims[d]
                 else
                     // exploitation (with clamp instead of restart if out of bounds!)
-                    fNew[d] = clamp(bestNeighbor[d] + Math.random() * (bestGlobal[d] - f[d]), 0, canvasDims[d])
+                    fNext[d] = clamp(bestNeighbor[d] + Math.random() * (best[d] - f[d]), 0, canvasDims[d])
         }
     }
 
