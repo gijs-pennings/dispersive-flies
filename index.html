@@ -27,14 +27,14 @@
     const CURSOR_THICKNESS  =   4
     const CURSOR_SIZE       =  20
 
-    const DFO_DELAY         = 200  // ms
+    const DFO_DELAY         = 200      // ms
 
-    const N = 40                   // no. flies
-    const D = 2                    // no. dimensions (grid!)
-    const T = 1 / N                // disturbance threshold
+    const N                 =  40      // no. flies
+    const D                 =   2      // no. dimensions (grid!)
+    const T                 = 1 / N    // disturbance threshold
 
-    let timeLastIter               // unix time (ms)
-    let flies                      // [index][dimension]
+    let timeLastIter                   // unix time (ms)
+    let flies                          // [index][dimension]
     let fliesNext
     let mouseX
     let mouseY
