@@ -1,14 +1,14 @@
 # DFO visualization
 
-This is a simple demo of *Disruptive Flies Optimization* (DFO), inspired by [this video](https://youtu.be/VZGp0Dv01rE).
+This is a simple demo of *Dispersive Flies Optimization* (DFO), inspired by [this video](https://youtu.be/VZGp0Dv01rE).
 You can try it [here](https://gijs-pennings.github.io/dispersive-flies). It visualizes how flies (circles) follow your mouse (crosshair).
 This project is licensed under the [ISC license](LICENSE.txt).
 
 DFO is a swarm intelligence metaheuristic. In other words, it is a high-level algorithm designed to find "good" solutions to optimization problems. In particular, it maintains a population of agents (here: flies) that each represent a solution. Each iteration of the algorithm, these agents are updated and hopefully "moved closer" to the optimal solution.
 Compared to other metaheuristics, DFO has the advantage that it only uses one parameter (i.e., the disturbance threshold).
 
-DFO was first introduced in [1].
-However, the original paper is imprecise in some aspects.[^1] Therefore, this implementation is based on [2], which includes a more detailed description.
+DFO was first introduced in [1]. However, the original paper is imprecise in some aspects.[^1]
+Therefore, this implementation is based on [2], which includes a more detailed description.
 Furthermore, I made two minor changes, which are discussed [below](#changes-to-base-algorithm).
 
 [^1]: For example, the usage of ring topology is not described rigorously, it is not specified what happens in case of out-of-bounds coordinates, the pseudocode is inefficient, etc.
